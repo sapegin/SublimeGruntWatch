@@ -1,0 +1,9 @@
+{
+	"grunt_args": "--debug",
+	"file_regex": [
+		"^Stylus: .*?: (.*?):([0-9]*)"
+	],
+	"skip_regex": [
+		"^File \".*?\" changed.$"
+	]	
+}

@@ -1,0 +1,125 @@
+from os import path
+import os
+import re
+import sublime
+import sublime_plugin
+ExecCommand = __import__("exec").ExecCommand
+
+
+if os.name == "nt":
+	GRUNT_CMD = "grunt.cmd"
+else:
+	GRUNT_CMD = "grunt"
+
+
+# TODO: option for cli args
+
+
+class GruntExecCommand(ExecCommand):
+	def run(self, *args, **kwarg):
+		self.started = False
+		super(GruntExecCommand, self).run(*args, **kwarg)
+		self.window.run_command("hide_panel", {"panel": "output.exec"})
+
+	def append_data(self, proc, data):
+		if proc != self.proc:
+			# a second call to exec has been made before the first one
+			# finished, ignore it instead of intermingling the output.
+			if proc:
+				proc.kill()
+			return
+
+		try:
+			str = data.decode(self.encoding)
+		except:
+			str = "[Decode error - output not " + self.encoding + "]\n"
+		proc = None
+
+		# Normalize newlines, Sublime Text always uses a single \n separator
+		# in memory.
+		str = str.replace('\r\n', '\n').replace('\r', '\n')
+
+		#print '[[%s]]' % str
+
+		if str == "Waiting..." and not self.started:
+			self.started = True
+			sublime.status_message("Grunt watching...")
+			return
+
+		if str.startswith(">>"):
+			str = re.sub(r'(^|\n)>>\s*', r'\1', str)
+
+			m = re.match(r'^File "(.*?)" changed.$', str)
+			if m:
+				sublime.status_message("Grunt watch: %s changed" % m.group(1))
+				return
+
+			self.show_error_panel(str)
+
+	def show_error_panel(self, str):
+		selection_was_at_end = (len(self.output_view.sel()) == 1
+			and self.output_view.sel()[0]
+				== sublime.Region(self.output_view.size()))
+		self.output_view.set_read_only(False)
+		edit = self.output_view.begin_edit()
+		self.output_view.insert(edit, self.output_view.size(), str)
+		if selection_was_at_end:
+			self.output_view.show(self.output_view.size())
+		self.output_view.end_edit(edit)
+		self.output_view.set_read_only(True)
+
+		self.window.run_command("show_panel", {"panel": "output.exec"})
+
+
+def settings():
+	return sublime.load_settings('GruntWatch.sublime-settings')
+
+
+class GruntWatch(object):
+	def __init__(self, view, kill=False):
+		self.view = view
+		self.root_dir = self.project_root()
+		if not self.root_dir:
+			sublime.status_message("Gruntfile not found.")
+			return
+		self.run(kill)
+		sublime.status_message("Starting Grunt...")
+
+	def project_root(self):
+		dir = self.view.file_name()
+		while True:
+			parent = path.realpath(path.join(dir, ".."))
+			if parent == dir:  # System root folder
+				break
+			dir = parent
+			if path.isfile(path.join(dir, "grunt.js")):
+				return dir
+		return None
+
+	def run(self, kill=False):
+		file_regex = settings().get("file_regex")
+		if file_regex:
+			file_regex = "(?:%s)" % '|'.join(file_regex)
+		else:
+			file_regex = ""
+		grunt_args = settings().get("grunt_args")
+		self.view.window().run_command("grunt_exec", {
+				"cmd": [u"%s watch --no-color %s" % (GRUNT_CMD, grunt_args)],
+				"shell": True,
+				"kill": kill,
+				#"quiet": True,
+				"file_regex": file_regex,
+				"working_dir": self.root_dir
+			})
+
+
+# class GruntWatchCommand(sublime_plugin.TextCommand):
+# 	def run(self, edit):
+# 		GruntWatch(self.view)
+
+# 	def is_enabled(self):
+# 		return self.view.file_name() and len(self.view.file_name()) > 0
+
+# class GruntWatchStopCommand(GruntWatchCommand):
+# 	def run(self, edit):
+# 		GruntWatch(self.view, kill=True)

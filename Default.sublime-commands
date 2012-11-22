@@ -1,0 +1,11 @@
+[
+	{
+		"caption": "GruntWatch: Watch",
+		"command": "grunt_watch"
+	},
+	{
+		"caption": "GruntWatch: Stop",
+		"command": "grunt_watch",
+		"args": {"kill": true}
+	}
+]

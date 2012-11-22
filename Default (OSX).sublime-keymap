@@ -1,0 +1,3 @@
+[
+	{ "keys": ["super+alt+g"], "command": "grunt_watch" }
+]
