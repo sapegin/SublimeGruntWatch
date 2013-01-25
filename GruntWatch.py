@@ -101,7 +101,8 @@ class GruntWatchCommand(ExecCommand):
 			if parent == dir:  # System root folder
 				break
 			dir = parent
-			if path.isfile(path.join(dir, 'grunt.js')):
+			has = lambda f: path.isfile(path.join(dir, f))
+			if has('Gruntfile.js') or has('Gruntfile.coffee') or has('grunt.js'):
 				return dir
 		return None
 
