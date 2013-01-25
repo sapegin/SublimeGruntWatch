@@ -38,7 +38,7 @@ class GruntWatchCommand(ExecCommand):
 
 		kwarg['cmd'] = [u'%s watch --no-color %s' % (GRUNT_CMD, grunt_args)]
 		kwarg['shell'] = True
-		#kwarg['quiet'] = True
+		kwarg['quiet'] = True
 		kwarg['file_regex'] = file_regex
 		kwarg['working_dir'] = root_dir
 
@@ -51,7 +51,7 @@ class GruntWatchCommand(ExecCommand):
 
 	def append_data(self, proc, data):
 		if proc != self.proc:
-			# a second call to exec has been made before the first one
+			# A second call to exec has been made before the first one
 			# finished, ignore it instead of intermingling the output.
 			if proc:
 				proc.kill()
@@ -67,7 +67,8 @@ class GruntWatchCommand(ExecCommand):
 		# in memory.
 		str = str.replace('\r\n', '\n').replace('\r', '\n')
 
-		print '[[%s]]' % str
+		# Print to console, no popup
+		print 'Grunt: %s' % str.strip().replace('\n', '\nGrunt: ')
 
 		if str == 'Waiting...' and not self.started:
 			self.started = True
